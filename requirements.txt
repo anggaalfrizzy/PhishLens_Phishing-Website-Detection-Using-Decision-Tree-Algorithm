@@ -1,0 +1,6 @@
+Flask>=3.0,<4
+gunicorn>=22
+scikit-learn==1.9.1
+pandas>=2.2
+numpy>=1.26
+joblib>=1.4

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phishlens, pemeriksa situs phishing</title>
+  <meta name="description" content="Periksa apakah sebuah situs berpotensi phishing dengan model Decision Tree yang bisa dijelaskan.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E4A5A'/%3E%3Ccircle cx='15' cy='14' r='6' fill='none' stroke='white' stroke-width='2.4'/%3E%3Cpath d='M19.5 18.5L25 24' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <a class="skip" href="#form" data-i18n="skip">Lewati ke formulir</a>
+
+  <header class="top">
+    <div class="wrap top-in">
+      <a class="brand" href="#" aria-label="Phishlens">
+        <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0E4A5A"/><circle cx="15" cy="14" r="6" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M19.5 18.5L25 24" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+        <span>Phishlens</span>
+      </a>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="id" aria-pressed="true">ID</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="intro">
+      <h1 data-i18n="h1">Periksa situs sebelum kamu mempercayainya</h1>
+      <p data-i18n="lead">Jawab delapan pertanyaan tentang situs yang kamu curigai. Model Decision Tree akan menilai kemungkinan phishing dan menunjukkan alasannya.</p>
+    </section>
+
+    <div class="grid">
+      <form id="form" class="sheet" novalidate>
+        <div class="sheet-head">
+          <h2 data-i18n="formTitle">Ciri-ciri situs</h2>
+          <div class="presets">
+            <span data-i18n="presetLabel">Belum yakin? Coba contoh:</span>
+            <button type="button" class="link" data-preset="phishing" data-i18n="presetBad">situs phishing</button>
+            <button type="button" class="link" data-preset="legitimate" data-i18n="presetGood">situs sah</button>
+          </div>
+        </div>
+        <div id="questions"></div>
+        <div class="sheet-foot">
+          <button type="submit" class="primary" id="submit" data-i18n="submit">Periksa situs</button>
+          <button type="button" class="link" id="reset" data-i18n="reset">Kosongkan jawaban</button>
+          <p class="form-error" id="formError" role="alert" hidden></p>
+        </div>
+      </form>
+
+      <aside class="verdict" id="verdict" aria-live="polite" data-state="empty">
+        <div class="v-empty">
+          <h2 data-i18n="vEmptyTitle">Hasil pemeriksaan</h2>
+          <p data-i18n="vEmptyBody">Isi semua pertanyaan di sebelah kiri, lalu tekan Periksa situs. Alasan model akan muncul di sini.</p>
+        </div>
+        <div class="v-result" hidden>
+          <p class="v-kicker" data-i18n="vKicker">Penilaian model</p>
+          <p class="v-word" id="vWord"></p>
+          <p class="v-sentence" id="vSentence"></p>
+          <div class="gauge" aria-hidden="true">
+            <div class="gauge-track"><span class="gauge-mark" id="gaugeMark"></span></div>
+            <div class="gauge-scale"><span data-i18n="gLegit">Sah</span><span data-i18n="gPhish">Phishing</span></div>
+          </div>
+          <p class="v-conf" id="vConf"></p>
+          <h3 data-i18n="pathTitle">Alur keputusan model</h3>
+          <ol class="path" id="path"></ol>
+          <p class="v-note" id="vNote"></p>
+        </div>
+      </aside>
+    </div>
+
+    <section class="about" id="about">
+      <h2 data-i18n="aboutTitle">Cara model bekerja</h2>
+      <div class="about-grid">
+        <div>
+          <h3 data-i18n="cmpTitle">Pohon bebas dan pohon yang dipangkas</h3>
+          <p class="muted" id="cmpText"></p>
+          <div class="bars" id="cmpBars"></div>
+        </div>
+        <div>
+          <h3 data-i18n="impTitle">Ciri yang paling menentukan</h3>
+          <p class="muted" data-i18n="impText">Semakin panjang batang, semakin besar peran ciri itu dalam memisahkan situs phishing dari situs sah.</p>
+          <div class="bars" id="impBars"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p data-i18n="footData">Data: Phishing Websites, UCI Machine Learning Repository (Mohammad dan McCluskey, 2012), sampel {{ metrics.dataset.rows }} baris tanpa duplikat.</p>
+      <p data-i18n="footDisclaimer">Alat belajar. Hasilnya bukan jaminan keamanan, jadi jangan jadikan satu-satunya dasar keputusan.</p>
+      <p>{{ author }}</p>
+    </div>
+  </footer>
+
+  <script>
+    window.APP = {
+      schema: {{ schema|tojson }},
+      presets: {{ presets|tojson }},
+      metrics: {{ metrics|tojson }},
+      ranked: {{ ranked|tojson }}
+    };
+  </script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
